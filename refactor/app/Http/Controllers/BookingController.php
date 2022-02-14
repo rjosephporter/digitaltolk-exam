@@ -2,7 +2,11 @@
 
 namespace DTApi\Http\Controllers;
 
+use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\UpdateBookingRequest;
+use App\Http\Resources\JobResource;
 use DTApi\Models\Job;
+use DTApi\Models\User;
 use DTApi\Http\Requests;
 use DTApi\Models\Distance;
 use Illuminate\Http\Request;
@@ -33,19 +37,13 @@ class BookingController extends Controller
      * @param Request $request
      * @return mixed
      */
-    public function index(Request $request)
+    public function index(Request $request, User $user)
     {
-        if($user_id = $request->get('user_id')) {
-
-            $response = $this->repository->getUsersJobs($user_id);
-
-        }
-        elseif($request->__authenticatedUser->user_type == env('ADMIN_ROLE_ID') || $request->__authenticatedUser->user_type == env('SUPERADMIN_ROLE_ID'))
-        {
-            $response = $this->repository->getAll($request);
-        }
-
-        return response($response);
+        return response(
+            $request->__authenticatedUser->user_type == env('ADMIN_ROLE_ID') || $request->__authenticatedUser->user_type == env('SUPERADMIN_ROLE_ID')
+                ? $this->repository->getAll($request)
+                : $this->repository->getUsersJobs($user)
+        );
     }
 
     /**
@@ -63,7 +61,7 @@ class BookingController extends Controller
      * @param Request $request
      * @return mixed
      */
-    public function store(Request $request)
+    public function store(StoreBookingRequest $request)
     {
         $data = $request->all();
 
@@ -78,13 +76,13 @@ class BookingController extends Controller
      * @param Request $request
      * @return mixed
      */
-    public function update($id, Request $request)
+    public function update(Job $job, UpdateBookingRequest $request)
     {
         $data = $request->all();
         $cuser = $request->__authenticatedUser;
-        $response = $this->repository->updateJob($id, array_except($data, ['_token', 'submit']), $cuser);
+        $response = $this->repository->updateJob($job, array_except($data, ['_token', 'submit']), $cuser);
 
-        return response($response);
+        return new JobResource($response);
     }
 
     /**
